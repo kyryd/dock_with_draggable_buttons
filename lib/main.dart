@@ -44,6 +44,8 @@ class Dock<T> extends StatefulWidget {
 class _DockState<T> extends State<Dock<T>> {
   late final List<T> _itemsBeforeDrag = widget.items.toList();
   late final List<T> _items = widget.items.toList();
+  late final _paddingTween =
+      widget.items.map((x) => EdgeInsetsTween()).toList();
 
   T itemAtIndex(int index) => _itemsBeforeDrag[index];
 
@@ -51,8 +53,13 @@ class _DockState<T> extends State<Dock<T>> {
 
   bool get dragging => _items.length < sourceLength;
 
+  int? indexSelected;
+
+  static final double _maxPadding = 50.0;
+
   void _onAcceptWithDetails(DragTargetDetails<int> details, int index) {
     setState(() {
+      indexSelected = null;
       _items.insert(
         index,
         itemAtIndex(details.data),
@@ -60,6 +67,19 @@ class _DockState<T> extends State<Dock<T>> {
       _itemsBeforeDrag.clear();
       _itemsBeforeDrag.addAll(_items);
     });
+  }
+
+  void updateItemPadding(int index) {
+    if (indexSelected != null) {
+      _paddingTween[index] = EdgeInsetsTween(
+          begin: EdgeInsets.zero,
+          end: EdgeInsets.only(bottom: _calcPadding(index)));
+    } else {
+      _paddingTween[index] = EdgeInsetsTween(
+        begin: EdgeInsets.only(bottom: _calcPadding(index)),
+        end: EdgeInsets.zero,
+      );
+    }
   }
 
   @override
@@ -80,36 +100,47 @@ class _DockState<T> extends State<Dock<T>> {
             ..._items.asMap().entries.map((entry) {
               int index = entry.key;
               T item = entry.value;
-              return DragTarget<int>(
-                builder: (
-                  BuildContext context,
-                  List<dynamic> accepted,
-                  List<dynamic> rejected,
-                ) {
-                  return Draggable<int>(
-                      data: index,
-                      feedback: widget.builder(item),
-                      child: widget.builder(item),
-                      onDraggableCanceled: (velocity, offset) {
-                        setState(() {
-                          _items.clear();
-                          _items.addAll(_itemsBeforeDrag);
-                        });
-                      },
-                      onDragStarted: () => setState(() {
-                            _items.removeAt(index);
-                          }),
-                      onDragEnd: (details) {
-                        setState(() {
-                          if (!details.wasAccepted) {
+              updateItemPadding(index);
+              return TweenAnimationBuilder(
+                tween: _paddingTween[index],
+                duration: Duration(milliseconds: 400),
+                builder: (context, value, _) => Padding(
+                  padding: value,
+                  child: DragTarget<int>(
+                    builder: (
+                      BuildContext context,
+                      List<dynamic> accepted,
+                      List<dynamic> rejected,
+                    ) {
+                      return Draggable<int>(
+                        data: index,
+                        feedback: widget.builder(item),
+                        onDraggableCanceled: (velocity, offset) {
+                          setState(() {
                             _items.clear();
                             _items.addAll(_itemsBeforeDrag);
-                          }
-                        });
-                      });
-                },
-                onAcceptWithDetails: (DragTargetDetails<int> details) =>
-                    _onAcceptWithDetails(details, index),
+                          });
+                        },
+                        onDragStarted: () => setState(() {
+                          indexSelected = index;
+                          _items.removeAt(index);
+                        }),
+                        onDragEnd: (details) {
+                          setState(() {
+                            if (!details.wasAccepted) {
+                              _items.clear();
+                              _items.addAll(_itemsBeforeDrag);
+                              indexSelected = null;
+                            }
+                          });
+                        },
+                        child: widget.builder(item),
+                      );
+                    },
+                    onAcceptWithDetails: (DragTargetDetails<int> details) =>
+                        _onAcceptWithDetails(details, index),
+                  ),
+                ),
               );
             }),
             if (dragging)
@@ -127,6 +158,23 @@ class _DockState<T> extends State<Dock<T>> {
         ),
       ),
     );
+  }
+
+  double _calcPadding(int index) {
+    if (indexSelected == null) {
+      return 0;
+    }
+    if (indexSelected! < index) {
+      return _maxPadding / (index - indexSelected! + 1);
+    }
+    if (indexSelected! > index) {
+      return _maxPadding / (indexSelected! - index);
+    }
+    if (indexSelected! == index) {
+      return _maxPadding;
+    }
+
+    return 0;
   }
 }
 
@@ -171,6 +219,26 @@ class ToolBarButton extends StatelessWidget {
         color: backgroundColor,
       ),
       child: Center(child: Icon(_iconData, color: Colors.white)),
+    );
+  }
+}
+
+class Gravity extends StatelessWidget {
+  const Gravity({
+    super.key,
+    required final Widget child,
+    required final double gravity,
+  })  : _gravity = gravity,
+        _child = child;
+
+  final double _gravity;
+  final Widget _child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: _gravity * 2),
+      child: _child,
     );
   }
 }
