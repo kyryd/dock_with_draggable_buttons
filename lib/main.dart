@@ -55,7 +55,12 @@ class _DockState<T> extends State<Dock<T>> {
 
   int? indexSelected;
 
-  static final double _maxPadding = 50.0;
+  static final double _maxPadding = 25.0;
+  @override
+  void initState() {
+    super.initState();
+    _updatePaddingTweens();
+  }
 
   void _onAcceptWithDetails(DragTargetDetails<int> details, int index) {
     setState(() {
@@ -69,7 +74,13 @@ class _DockState<T> extends State<Dock<T>> {
     });
   }
 
-  void updateItemPadding(int index) {
+  void _updatePaddingTweens() {
+    for (int i = 0; i < _paddingTween.length; i++) {
+      _updateItemPadding(i);
+    }
+  }
+
+  void _updateItemPadding(int index) {
     if (indexSelected != null) {
       _paddingTween[index] = EdgeInsetsTween(
           begin: EdgeInsets.zero,
@@ -100,45 +111,55 @@ class _DockState<T> extends State<Dock<T>> {
             ..._items.asMap().entries.map((entry) {
               int index = entry.key;
               T item = entry.value;
-              updateItemPadding(index);
-              return TweenAnimationBuilder(
-                tween: _paddingTween[index],
-                duration: Duration(milliseconds: 400),
-                builder: (context, value, _) => Padding(
-                  padding: value,
-                  child: DragTarget<int>(
-                    builder: (
-                      BuildContext context,
-                      List<dynamic> accepted,
-                      List<dynamic> rejected,
-                    ) {
-                      return Draggable<int>(
-                        data: index,
-                        feedback: widget.builder(item),
-                        onDraggableCanceled: (velocity, offset) {
-                          setState(() {
-                            _items.clear();
-                            _items.addAll(_itemsBeforeDrag);
-                          });
-                        },
-                        onDragStarted: () => setState(() {
-                          indexSelected = index;
-                          _items.removeAt(index);
-                        }),
-                        onDragEnd: (details) {
-                          setState(() {
-                            if (!details.wasAccepted) {
+
+              return MouseRegion(
+                onEnter: (event) => setState(() {
+                  indexSelected = index;
+                  _updatePaddingTweens();
+                }),
+                onExit: (event) => setState(() {
+                  indexSelected = null;
+                  _updatePaddingTweens();
+                }),
+                child: TweenAnimationBuilder(
+                  tween: _paddingTween[index],
+                  duration: Duration(milliseconds: 400),
+                  builder: (context, value, _) => Padding(
+                    padding: value,
+                    child: DragTarget<int>(
+                      builder: (
+                        BuildContext context,
+                        List<dynamic> accepted,
+                        List<dynamic> rejected,
+                      ) {
+                        return Draggable<int>(
+                          data: index,
+                          feedback: widget.builder(item),
+                          onDraggableCanceled: (velocity, offset) {
+                            setState(() {
                               _items.clear();
                               _items.addAll(_itemsBeforeDrag);
-                              indexSelected = null;
-                            }
-                          });
-                        },
-                        child: widget.builder(item),
-                      );
-                    },
-                    onAcceptWithDetails: (DragTargetDetails<int> details) =>
-                        _onAcceptWithDetails(details, index),
+                            });
+                          },
+                          onDragStarted: () => setState(() {
+                            indexSelected = index;
+                            _items.removeAt(index);
+                          }),
+                          onDragEnd: (details) {
+                            setState(() {
+                              if (!details.wasAccepted) {
+                                _items.clear();
+                                _items.addAll(_itemsBeforeDrag);
+                                indexSelected = null;
+                              }
+                            });
+                          },
+                          child: widget.builder(item),
+                        );
+                      },
+                      onAcceptWithDetails: (DragTargetDetails<int> details) =>
+                          _onAcceptWithDetails(details, index),
+                    ),
                   ),
                 ),
               );
