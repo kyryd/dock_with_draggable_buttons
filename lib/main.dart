@@ -55,7 +55,7 @@ class _DockState<T> extends State<Dock<T>> {
 
   int? indexSelected;
 
-  static final double _maxPadding = 25.0;
+  static final double _maxPadding = kIconSize * 0.5;
   @override
   void initState() {
     super.initState();
@@ -84,10 +84,10 @@ class _DockState<T> extends State<Dock<T>> {
     if (indexSelected != null) {
       _paddingTween[index] = EdgeInsetsTween(
           begin: EdgeInsets.zero,
-          end: EdgeInsets.only(bottom: _calcPadding(index)));
+          end: EdgeInsets.only(bottom: _calcBottomPadding(index)));
     } else {
       _paddingTween[index] = EdgeInsetsTween(
-        begin: EdgeInsets.only(bottom: _calcPadding(index)),
+        begin: EdgeInsets.only(bottom: _calcBottomPadding(index)),
         end: EdgeInsets.zero,
       );
     }
@@ -101,10 +101,9 @@ class _DockState<T> extends State<Dock<T>> {
         color: Colors.black12,
       ),
       padding: const EdgeInsets.all(kPadding),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          minWidth: widget.items.length * kIconSize * 1.5,
-        ),
+      child: SizedBox(
+        height: kIconSize * 1.8,
+        width: widget.items.length * kIconSize * 1.5,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -181,7 +180,7 @@ class _DockState<T> extends State<Dock<T>> {
     );
   }
 
-  double _calcPadding(int index) {
+  double _calcBottomPadding(int index) {
     if (indexSelected == null) {
       return 0;
     }
