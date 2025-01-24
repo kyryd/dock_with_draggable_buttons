@@ -100,10 +100,10 @@ class _DockState<T> extends State<Dock<T>> {
         borderRadius: BorderRadius.circular(kRadius),
         color: Colors.black12,
       ),
-      padding: const EdgeInsets.all(kPadding),
+      padding: EdgeInsets.zero,
       child: SizedBox(
-        height: kIconSize * 1.8,
-        width: widget.items.length * kIconSize * 1.5,
+        height: kIconSize * 1.65 + 2 * kPadding,
+        width: widget.items.length * kIconSize * 1.5 + 2 * kPadding,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
